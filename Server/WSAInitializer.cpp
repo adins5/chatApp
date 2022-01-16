@@ -1,7 +1,6 @@
 #include "WSAInitializer.h"
 #include <exception>
 
-
 WSAInitializer::WSAInitializer()
 {
 	WSADATA wsa_data = { };

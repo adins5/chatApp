@@ -11,7 +11,8 @@
 #define CONFIG_PATH "./config.txt"
 
 void getConfiguration();
-void connector();
+int connector();
+
 
 std::string* ip;
 int* port;
@@ -25,6 +26,8 @@ int main()
 	T1.detach();
 
 
+
+	Sleep(10000000);
 
 }
 
@@ -51,23 +54,22 @@ void getConfiguration()
 	}
 }
 
-void connector()
+int connector()
 {
-	WSAInitializer wsaInit;
-	Server myServer;
-
-	while (true)
+	try
 	{
-		try
+		while (true)
 		{
+
+			WSAInitializer wsaInit;
+			Server myServer;
 			myServer.serve(*port);
 		}
-		catch (std::exception& e)
-		{
-			std::cerr << "Error occured: " << e.what() << std::endl;
-		}
-		system("PAUSE");
 	}
-
+	catch (std::exception& e)
+	{
+		std::cerr << "Error occured: " << e.what() << std::endl;
+		return 1;
+	}
 
 }

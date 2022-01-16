@@ -72,26 +72,37 @@ void Server::acceptClient()
 
 void Server::clientHandler(SOCKET clientSocket)
 {
+	int nameLen = stoi(Helper::getStringPartFromSocket(clientSocket, 5).substr(3, 2));
+
+	std::string name = Helper::getStringPartFromSocket(clientSocket, nameLen);
+	_names.insert(name);
+	std::cout << name;
+	
+	std::string ret = "1010000000" + Helper::getPaddedNumber(nameLen, 5) + name;
+	Helper::sendData(clientSocket, ret);
+	
 	try
 	{
-		char buff[265];
-		recv(clientSocket, buff, 265, 0);
+		while (true)
+		{
+			/*char buff[265];
+			recv(clientSocket, buff, 265, 0);
+			std::cout << buff;
 
-		int msgCode = Helper::getMessageTypeCode(clientSocket);
+			_msgMtx.lock();
+			_msgQueue.push(buff);
+			_msgMtx.unlock();*/
 
-		msgMtx.lock();
-		msgQueue.push(buff);
-		msgMtx.unlock();
 
-		std::string s;
-		send(clientSocket, s.c_str(), s.size(), 0);
-
+			int chatLen = Helper::getIntPartFromSocket(clientSocket, 8) - 10100000;
+			std::cout << chatLen;
+			std::string s = "101";
+			send(clientSocket, s.c_str(), s.size(), 0);
+		}
 	}
 	catch (const std::exception& e)
 	{
 		closesocket(clientSocket);
 	}
-
-
 }
 

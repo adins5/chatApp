@@ -6,10 +6,7 @@
 #include <thread>
 #include <condition_variable>
 #include <queue> 
-
-std::mutex msgMtx;
-std::condition_variable condMsgQueue;
-std::queue <std::string> msgQueue;
+#include <set>
 
 class Server
 {
@@ -25,5 +22,10 @@ private:
 	void clientHandler(SOCKET clientSocket);
 
 	SOCKET _serverSocket;
+	std::mutex _msgMtx;
+	std::condition_variable _condMsgQueue;
+	std::queue <std::string> _msgQueue;
+	std::set <std::string> _names;
+
 };
 
