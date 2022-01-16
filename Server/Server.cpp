@@ -65,7 +65,8 @@ void Server::acceptClient()
 
 	std::cout << "Client accepted. Server and client can speak" << std::endl;
 	// the function that handle the conversation with the client
-	clientHandler(client_socket);
+	std::thread T (&Server::clientHandler, this, client_socket);
+	T.detach();
 }
 
 
@@ -78,10 +79,9 @@ void Server::clientHandler(SOCKET clientSocket)
 
 		int msgCode = Helper::getMessageTypeCode(clientSocket);
 
-		if (msgCode == 200)
-		{
-				
-		}
+		msgMtx.lock();
+		msgQueue.push(buff);
+		msgMtx.unlock();
 
 		std::string s;
 		send(clientSocket, s.c_str(), s.size(), 0);

@@ -4,6 +4,12 @@
 #include <Windows.h>
 #include <iostream>
 #include <thread>
+#include <condition_variable>
+#include <queue> 
+
+std::mutex msgMtx;
+std::condition_variable condMsgQueue;
+std::queue <std::string> msgQueue;
 
 class Server
 {

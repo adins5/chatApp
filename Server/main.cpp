@@ -1,18 +1,18 @@
 //#include "Server.h"
-#include <queue> 
 #include <fstream>
 #include <string>
 #include <iostream>
-#include<stdio.h>
+#include <stdio.h>
 #include "Helper.h"
 #include "WSAInitializer.h"
 #include "Server.h"
 
+
 #define CONFIG_PATH "./config.txt"
 
 void getConfiguration();
+void connector();
 
-std::queue <std::string> msgQueue;
 std::string* ip;
 int* port;
 
@@ -20,6 +20,10 @@ int* port;
 int main()
 {
 	getConfiguration();
+
+	std::thread T1(connector);
+	T1.detach();
+
 
 
 }
