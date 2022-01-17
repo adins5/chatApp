@@ -84,10 +84,7 @@ void Server::clientHandler(SOCKET clientSocket)
 	{
 		name += char(buff[5 + i]);
 	}
-	if (msgType == 0)
-	{
-		_names.insert(name);
-	}
+	_names.insert(name);
 
 	std::string ret = "1010000000000" + Helper::getPaddedNumber(nameLen, 2) + name;
 	std::cout << ret << std::endl;
@@ -101,19 +98,25 @@ void Server::clientHandler(SOCKET clientSocket)
 			recv(clientSocket, buff, 265, 0);
 			std::cout << buff << std::endl;
 			int msgLen = atoi(buff + 5 + nameLen);
-			std::cout << msgLen;
 			
 			std::string namesString = "";
-			for (std::set <std::string>::iterator it = _names.begin(); it != _names.end(); it++)
+			for (std::set <std::string>::iterator it = _names.begin(); it != _names.end(); ++it)
 			{
-				std::cout << "in loop";
 				namesString += *it + "&";
 			}
 			namesString = namesString.substr(0, namesString.length() - 1);
 
-			ret = "101" + Helper::getPaddedNumber(chat.length(), 5) + chat + Helper::getPaddedNumber(nameLen, 2) + name;
-			ret += namesString.length();
-			ret + namesString;
+			ret = "101" + Helper::getPaddedNumber(chat.length(), 5) + chat;
+			if (_names.size() != 1)
+			{
+				ret += Helper::getPaddedNumber(nameLen, 2) + name;
+			}
+			else
+			{
+				ret += "00";
+			}
+			ret += Helper::getPaddedNumber(namesString.length(), 5);
+			ret += namesString;
 
 			std::cout << ret << std::endl;
 			Helper::sendData(clientSocket, ret);
