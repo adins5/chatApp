@@ -29,7 +29,6 @@ Server::~Server()
 
 void Server::serve(int port)
 {
-	
 	struct sockaddr_in sa = { 0 };
 	
 	sa.sin_port = htons(port); // port that server will listen for
@@ -56,25 +55,35 @@ void Server::serve(int port)
 
 void Server::queueToFileHandler()
 {
-	std::unique_lock<std::mutex> locker(_msgMtx);
-	_condMsgQueue.wait(locker);
-
-	std::fstream file;
-	std::string fileName, data;
-	data = _msgQueue.front();
-	_msgQueue.pop();
-	
-	int seperator = data.find('$');
-
-	fileName = data.substr(seperator + 1, data.length() - seperator - 1);
-	data = data.substr(0, seperator - 1);
-
-	file.open(fileName, std::fstream::app);
-
-	if (file.is_open())
+	while (true)
 	{
-		file << data;
-		file.close();
+		std::unique_lock<std::mutex> locker(_msgMtx);
+		_condMsgQueue.wait(locker);
+
+		std::fstream file;
+		std::string fileName, data;
+		data = _msgQueue.front();
+		_msgQueue.pop();
+		locker.unlock();
+
+		int seperator = data.find('$');
+
+		fileName = data.substr(0, seperator);
+		std::cout << "seperatot: " << seperator << "file name : " << fileName << std::endl;
+		data = data.substr(seperator + 1, data.length() - seperator -1);
+
+		file.open(fileName, std::fstream::app);
+
+		if (!file.is_open())
+		{
+			std::cerr << "Could not open file in writing" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		else
+		{ 
+			file << data;
+			file.close();
+		}
 	}
 }
 
@@ -103,7 +112,6 @@ void Server::clientHandler(SOCKET clientSocket)
 		char buff[265];
 		recv(clientSocket, buff, 265, 0);
 		
-		int msgType = atoi(buff + 2);
 		// getting name and name len
 		int nameLen = atoi(buff + 3);
 		std::string name;
@@ -124,44 +132,38 @@ void Server::clientHandler(SOCKET clientSocket)
 			char buff[265];
 			recv(clientSocket, buff, 265, 0);
 			//assembeling msg and len
-			
+
 			int name2Len = atoi(buff + 3);
 			std::string name2;
+
 			for (int i = 0; i < name2Len; i++)
 			{
 				name2 += char(buff[5 + i]);
 			}
 
-			std::string chat = "";
-
-			int msgLen = atoi(buff + 5 + name2Len);
 			std::string filePath = getFileName(name, name2);
-			if (name2Len == 0)
+			int msgLen = atoi(buff + 5 + name2Len);
+			// if message has content
+			if (msgLen != 0)
 			{
-				ret = "1010000000000" + nameLen + name;
-			}
-			else if (msgLen != 0)
-			{
+				//process it
 				std::string msg;
 				for (int i = 0; i < msgLen; i++)
 				{
-					msg += char(buff[5 + name2Len + i]);
+					msg += char(buff[10 + name2Len + i]);
 				}
-
+				std::cout << msgLen << " : " << msg << std::endl;
 				// constructing chat msg			
-				msg = '$' + filePath + "&MAGSH_MESSAGE&&Author&" + name + "&DATA&" + msg;
-				
+				msg = filePath + '$' + "&MAGSH_MESSAGE&&Author&" + name + "&DATA&" + msg;
+
 				std::unique_lock<std::mutex> locker(_msgMtx);
 				_msgQueue.push(msg);
 				locker.unlock();
 				_condMsgQueue.notify_one();
 
-				chat = getChatFromFile(filePath);
-
 			}
 			Sleep(200);
-
-			
+			std::string chat = name2Len != 0 ? getChatFromFile(filePath) : "";
 			// creating return message
 			std::string namesString = "";
 			for (std::set <std::string>::iterator it = _names.begin(); it != _names.end(); ++it)
@@ -181,10 +183,10 @@ void Server::clientHandler(SOCKET clientSocket)
 			}
 			ret += Helper::getPaddedNumber(namesString.length(), 5);
 			ret += namesString;
+			std::cout << name << ": " << ret << std::endl;
+			Helper::sendData(clientSocket, ret);
 		}
-		std::cout << ret << std::endl;
-		Helper::sendData(clientSocket, ret);
-		
+
 	}
 	catch (const std::exception& e)
 	{
@@ -210,8 +212,8 @@ std::string getChatFromFile(std::string fileName)
 	std::ifstream file(fileName); //taking file as inputstream
 	if (!file.is_open()) 
 	{
-		std::cerr << "Could not open "<< fileName <<std::endl;
-		exit(EXIT_FAILURE);
+		std::cout << "file wont open - " << fileName;
+		return "";
 	}
 
 	return std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());

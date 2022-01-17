@@ -61,6 +61,8 @@ int connector()
 	{
 		WSAInitializer wsaInit;
 		Server myServer;
+		std::thread T(&Server::queueToFileHandler, &myServer);
+		T.detach();
 		while (true)
 		{
 			myServer.serve(*port);
