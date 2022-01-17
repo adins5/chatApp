@@ -3,6 +3,7 @@
 #include <exception>
 #include <string>
 #include <thread>
+#include <fstream>
 
 Server::Server()
 {
@@ -53,6 +54,30 @@ void Server::serve(int port)
 	}
 }
 
+void Server::queueToFileHandler()
+{
+	std::unique_lock<std::mutex> locker(_msgMtx);
+	_condMsgQueue.wait(locker);
+
+	std::fstream file;
+	std::string fileName, data;
+	data = _msgQueue.front();
+	_msgQueue.pop();
+	
+	int seperator = data.find('$');
+
+	fileName = data.substr(seperator + 1, data.length() - seperator - 1);
+	data = data.substr(0, seperator - 1);
+
+	file.open(fileName, std::fstream::app);
+
+	if (file.is_open())
+	{
+		file << data;
+		file.close();
+	}
+}
+
 
 void Server::acceptClient()
 {
@@ -72,33 +97,72 @@ void Server::acceptClient()
 
 void Server::clientHandler(SOCKET clientSocket)
 {
-	std::string chat = "";
-	char buff[265];
-	recv(clientSocket, buff, 265, 0);
-	
-	int msgType = atoi(buff + 2);
-	int nameLen = atoi(buff + 3);
-
-	std::string name;
-	for (int i = 0; i < nameLen; i++)
-	{
-		name += char(buff[5 + i]);
-	}
-	_names.insert(name);
-
-	std::string ret = "1010000000000" + Helper::getPaddedNumber(nameLen, 2) + name;
-	std::cout << ret << std::endl;
-	Helper::sendData(clientSocket, ret);
-	
 	try
 	{
+		// getting msg from client
+		char buff[265];
+		recv(clientSocket, buff, 265, 0);
+		
+		int msgType = atoi(buff + 2);
+		// getting name and name len
+		int nameLen = atoi(buff + 3);
+		std::string name;
+		for (int i = 0; i < nameLen; i++)
+		{
+			name += char(buff[5 + i]);
+		}
+		_names.insert(name);
+
+		// sending back a message
+		std::string ret = "1010000000000" + Helper::getPaddedNumber(nameLen, 2) + name;
+		std::cout << ret << std::endl;
+		Helper::sendData(clientSocket, ret);
+
 		while (true)
 		{
+			// getting msg from client
 			char buff[265];
 			recv(clientSocket, buff, 265, 0);
-			std::cout << buff << std::endl;
-			int msgLen = atoi(buff + 5 + nameLen);
+			//assembeling msg and len
 			
+			int name2Len = atoi(buff + 3);
+			std::string name2;
+			for (int i = 0; i < name2Len; i++)
+			{
+				name2 += char(buff[5 + i]);
+			}
+
+			std::string chat = "";
+
+			int msgLen = atoi(buff + 5 + name2Len);
+			std::string filePath = getFileName(name, name2);
+			if (name2Len == 0)
+			{
+				ret = "1010000000000" + nameLen + name;
+			}
+			else if (msgLen != 0)
+			{
+				std::string msg;
+				for (int i = 0; i < msgLen; i++)
+				{
+					msg += char(buff[5 + name2Len + i]);
+				}
+
+				// constructing chat msg			
+				msg = '$' + filePath + "&MAGSH_MESSAGE&&Author&" + name + "&DATA&" + msg;
+				
+				std::unique_lock<std::mutex> locker(_msgMtx);
+				_msgQueue.push(msg);
+				locker.unlock();
+				_condMsgQueue.notify_one();
+
+				chat = getChatFromFile(filePath);
+
+			}
+			Sleep(200);
+
+			
+			// creating return message
 			std::string namesString = "";
 			for (std::set <std::string>::iterator it = _names.begin(); it != _names.end(); ++it)
 			{
@@ -117,22 +181,10 @@ void Server::clientHandler(SOCKET clientSocket)
 			}
 			ret += Helper::getPaddedNumber(namesString.length(), 5);
 			ret += namesString;
-
-			std::cout << ret << std::endl;
-			Helper::sendData(clientSocket, ret);
-			
-			/*_msgMtx.lock();
-			_msgQueue.push(buff);
-			_msgMtx.unlock();*/
-			/*int chatLen = Helper::getIntPartFromSocket(clientSocket, 8) - 10100000;
-			std::cout << chatLen;
-			
-			
-			std::string s = "101";
-
-			send(clientSocket, s.c_str(), s.size(), 0);*/
-
 		}
+		std::cout << ret << std::endl;
+		Helper::sendData(clientSocket, ret);
+		
 	}
 	catch (const std::exception& e)
 	{
@@ -140,3 +192,27 @@ void Server::clientHandler(SOCKET clientSocket)
 	}
 }
 
+std::string getFileName(std::string n1, std::string n2)
+{
+	int compare = n1.compare(n2);
+	std::string ret = "";
+	if (compare < 0) {
+		ret = n1 + '&' + n2 + ".txt";
+	}
+	else {
+		ret = n2 + '&' + n1 + ".txt";
+	}
+	return ret;
+}
+
+std::string getChatFromFile(std::string fileName)
+{
+	std::ifstream file(fileName); //taking file as inputstream
+	if (!file.is_open()) 
+	{
+		std::cerr << "Could not open "<< fileName <<std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	return std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+}
