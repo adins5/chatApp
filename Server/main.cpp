@@ -22,6 +22,7 @@ int main()
 {
 	getConfiguration();
 
+
 	std::thread T1(connector);
 	T1.detach();
 
@@ -58,11 +59,10 @@ int connector()
 {
 	try
 	{
+		WSAInitializer wsaInit;
+		Server myServer;
 		while (true)
 		{
-
-			WSAInitializer wsaInit;
-			Server myServer;
 			myServer.serve(*port);
 		}
 	}

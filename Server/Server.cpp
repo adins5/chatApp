@@ -72,32 +72,63 @@ void Server::acceptClient()
 
 void Server::clientHandler(SOCKET clientSocket)
 {
-	int nameLen = stoi(Helper::getStringPartFromSocket(clientSocket, 5).substr(3, 2));
-
-	std::string name = Helper::getStringPartFromSocket(clientSocket, nameLen);
-	_names.insert(name);
-	std::cout << name;
+	std::string chat = "";
+	char buff[265];
+	recv(clientSocket, buff, 265, 0);
 	
-	std::string ret = "1010000000" + Helper::getPaddedNumber(nameLen, 5) + name;
+	int msgType = atoi(buff + 2);
+	int nameLen = atoi(buff + 3);
+
+	std::string name;
+	for (int i = 0; i < nameLen; i++)
+	{
+		name += char(buff[5 + i]);
+	}
+	if (msgType == 0)
+	{
+		_names.insert(name);
+	}
+
+	std::string ret = "1010000000000" + Helper::getPaddedNumber(nameLen, 2) + name;
+	std::cout << ret << std::endl;
 	Helper::sendData(clientSocket, ret);
 	
 	try
 	{
 		while (true)
 		{
-			/*char buff[265];
+			char buff[265];
 			recv(clientSocket, buff, 265, 0);
-			std::cout << buff;
+			std::cout << buff << std::endl;
+			int msgLen = atoi(buff + 5 + nameLen);
+			std::cout << msgLen;
+			
+			std::string namesString = "";
+			for (std::set <std::string>::iterator it = _names.begin(); it != _names.end(); it++)
+			{
+				std::cout << "in loop";
+				namesString += *it + "&";
+			}
+			namesString = namesString.substr(0, namesString.length() - 1);
 
-			_msgMtx.lock();
+			ret = "101" + Helper::getPaddedNumber(chat.length(), 5) + chat + Helper::getPaddedNumber(nameLen, 2) + name;
+			ret += namesString.length();
+			ret + namesString;
+
+			std::cout << ret << std::endl;
+			Helper::sendData(clientSocket, ret);
+			
+			/*_msgMtx.lock();
 			_msgQueue.push(buff);
 			_msgMtx.unlock();*/
-
-
-			int chatLen = Helper::getIntPartFromSocket(clientSocket, 8) - 10100000;
+			/*int chatLen = Helper::getIntPartFromSocket(clientSocket, 8) - 10100000;
 			std::cout << chatLen;
+			
+			
 			std::string s = "101";
-			send(clientSocket, s.c_str(), s.size(), 0);
+
+			send(clientSocket, s.c_str(), s.size(), 0);*/
+
 		}
 	}
 	catch (const std::exception& e)
