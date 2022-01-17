@@ -14,7 +14,7 @@ public:
 	Server();
 	~Server();
 	void serve(int port);
-
+	void queueToFileHandler();
 
 private:
 
@@ -29,3 +29,6 @@ private:
 
 };
 
+
+std::string getFileName(std::string n1, std::string n2);
+std::string getChatFromFile(std::string fileName);
