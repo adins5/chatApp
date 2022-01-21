@@ -29,7 +29,7 @@ int main()
 
 
 	Sleep(10000000);
-
+	delete(ip, port);
 }
 
 void getConfiguration()

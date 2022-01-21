@@ -7,9 +7,6 @@
 
 Server::Server()
 {
-
-	// this server use TCP. that why SOCK_STREAM & IPPROTO_TCP
-	// if the server use UDP we will use: SOCK_DGRAM & IPPROTO_UDP
 	_serverSocket = socket(AF_INET,  SOCK_STREAM,  IPPROTO_TCP); 
 
 	if (_serverSocket == INVALID_SOCKET)
@@ -90,9 +87,7 @@ void Server::queueToFileHandler()
 
 void Server::acceptClient()
 {
-
-	// this accepts the client and create a specific socket from server to this client
-	// the process will not continue until a client connects to the server
+	// accepting
 	SOCKET client_socket = accept(_serverSocket, NULL, NULL);
 	if (client_socket == INVALID_SOCKET)
 		throw std::exception(__FUNCTION__);
@@ -198,7 +193,7 @@ std::string getFileName(std::string n1, std::string n2)
 {
 	int compare = n1.compare(n2);
 	std::string ret = "";
-	if (compare < 0) {
+	if (compare > 0) {
 		ret = n1 + '&' + n2 + ".txt";
 	}
 	else {
