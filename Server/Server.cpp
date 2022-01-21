@@ -193,7 +193,7 @@ std::string getFileName(std::string n1, std::string n2)
 {
 	int compare = n1.compare(n2);
 	std::string ret = "";
-	if (compare > 0) {
+	if (compare < 0) {
 		ret = n1 + '&' + n2 + ".txt";
 	}
 	else {
