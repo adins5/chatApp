@@ -22,7 +22,6 @@ int main()
 {
 	getConfiguration();
 
-
 	std::thread T1(connector);
 	T1.detach();
 
