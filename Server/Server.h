@@ -21,6 +21,9 @@ private:
 	void acceptClient();
 	void clientHandler(SOCKET clientSocket);
 
+	void processMsg(int msgLen, int name2Len, std::string name, char* buff, std::string filePath);
+	std::string buildMessage(std::string chat, int nameLen, std::string name);
+	std::string firstMessage(SOCKET soc);
 	SOCKET _serverSocket;
 	std::mutex _msgMtx;
 	std::condition_variable _condMsgQueue;
