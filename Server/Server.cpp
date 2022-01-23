@@ -142,11 +142,13 @@ void Server::clientHandler(SOCKET clientSocket)
 
 			//Sleep(200);
 			std::string chat = name2Len != 0 ? getChatFromFile(filePath) : "";
-			
-			// creating return message
-			ret = buildMessage(chat, name2Len, name2);
-			std::cout << name << ": " << ret << std::endl;
-			Helper::sendData(clientSocket, ret);
+			std::string namesString = "";
+			for (std::set <std::string>::iterator it = _names.begin(); it != _names.end(); ++it)
+			{
+				namesString += *it + "&";
+			}
+			namesString = namesString.substr(0, namesString.length() - 1);
+			Helper::send_update_message_to_client(clientSocket, chat, name2, namesString);
 		}
 
 		_names.erase(name);
@@ -176,29 +178,6 @@ void Server::processMsg(int msgLen, int name2Len, std::string name, char* buff, 
 	_condMsgQueue.notify_one();
 }
 
-std::string Server::buildMessage(std::string chat, int nameLen, std::string name)
-{
-	std::string ret;
-	std::string namesString = "";
-	for (std::set <std::string>::iterator it = _names.begin(); it != _names.end(); ++it)
-	{
-		namesString += *it + "&";
-	}
-	namesString = namesString.substr(0, namesString.length() - 1);
-
-	ret = "101" + Helper::getPaddedNumber(chat.length(), LENLEN) + chat;
-	if (_names.size() != 1)
-	{
-		ret += Helper::getPaddedNumber(nameLen, NAMELEN) + name;
-	}
-	else
-	{
-		ret += "00";
-	}
-	ret += Helper::getPaddedNumber(namesString.length(), LENLEN);
-	ret += namesString;
-	return ret;
-}
 
 std::string Server::firstMessage(SOCKET soc)
 {
@@ -215,9 +194,7 @@ std::string Server::firstMessage(SOCKET soc)
 	_names.insert(name);
 
 	// sending back a message
-	std::string ret = "1010000000000" + Helper::getPaddedNumber(nameLen, NAMELEN) + name;
-	std::cout << ret << std::endl;
-	Helper::sendData(soc, ret);
+	Helper::send_update_message_to_client(soc, "", "", name);
 	
 	return name;
 }
