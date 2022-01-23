@@ -112,7 +112,7 @@ void Server::clientHandler(SOCKET clientSocket)
 		while (true)
 		{
 			// getting msg from client
-			recv(clientSocket, buff, BUFFLEN, 0);
+			result = recv(clientSocket, buff, BUFFLEN, 0);
 			if (result == 0)
 			{
 				break;
