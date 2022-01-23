@@ -144,7 +144,7 @@ void Server::clientHandler(SOCKET clientSocket)
 			std::string chat = name2Len != 0 ? getChatFromFile(filePath) : "";
 			
 			// creating return message
-			ret = buildMessage(chat, nameLen, name);
+			ret = buildMessage(chat, name2Len, name2);
 			std::cout << name << ": " << ret << std::endl;
 			Helper::sendData(clientSocket, ret);
 		}
