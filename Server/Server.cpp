@@ -109,11 +109,11 @@ void Server::clientHandler(SOCKET clientSocket)
 	try
 	{
 		std::string name = firstMessage(clientSocket);
-		int nameLen = name.length();
-		std::string ret;
-		int result = 1;
+		std::string namesString = "", chat = "", name2 = "", filePath = "";
+		int nameLen = name.length(), result = 1;
 		char buff[BUFFLEN];
-
+		std::unique_lock<std::mutex> locker(_namesMtx);
+		locker.unlock();
 		while (true)
 		{
 			// getting msg from client
@@ -130,28 +130,28 @@ void Server::clientHandler(SOCKET clientSocket)
 			{
 				name2 += char(buff[LENLEN + i]);
 			}
-
 			std::string filePath = getFileName(name, name2);
-			
 			int msgLen = atoi(buff + LENLEN + name2Len);
 			// if message has content
 			if (msgLen != 0)
-			{
 				processMsg(msgLen, name2Len, name, buff, filePath);
-			}
 
-			//Sleep(200);
+			Sleep(200);
 			std::string chat = name2Len != 0 ? getChatFromFile(filePath) : "";
 			std::string namesString = "";
+			locker.lock();
 			for (std::set <std::string>::iterator it = _names.begin(); it != _names.end(); ++it)
 			{
 				namesString += *it + "&";
 			}
+			locker.unlock();
 			namesString = namesString.substr(0, namesString.length() - 1);
 			Helper::send_update_message_to_client(clientSocket, chat, name2, namesString);
 		}
-
+		
+		locker.lock();
 		_names.erase(name);
+		locker.unlock();
 		std::cout << name << " has disconected" << std::endl;
 	}
 	catch (const std::exception& e)
@@ -160,6 +160,7 @@ void Server::clientHandler(SOCKET clientSocket)
 	}
 }
 
+// function will extract the message and build it in the file pattern
 void Server::processMsg(int msgLen, int name2Len, std::string name, char* buff, std::string filePath)
 {
 	//process it
@@ -178,7 +179,7 @@ void Server::processMsg(int msgLen, int name2Len, std::string name, char* buff, 
 	_condMsgQueue.notify_one();
 }
 
-
+// function will get the first message
 std::string Server::firstMessage(SOCKET soc)
 {
 	char buff[BUFFLEN];
@@ -191,14 +192,16 @@ std::string Server::firstMessage(SOCKET soc)
 	{
 		name += char(buff[LENLEN + i]);
 	}
+	std::unique_lock<std::mutex> locker(_namesMtx);
 	_names.insert(name);
-
+	locker.unlock();
 	// sending back a message
 	Helper::send_update_message_to_client(soc, "", "", name);
 	
 	return name;
 }
 
+//function will create the file name
 std::string getFileName(std::string n1, std::string n2)
 {
 	int compare = n1.compare(n2);
@@ -212,6 +215,7 @@ std::string getFileName(std::string n1, std::string n2)
 	return ret;
 }
 
+// function will retreave chat from file
 std::string getChatFromFile(std::string fileName)
 {
 	std::ifstream file(fileName); //taking file as inputstream

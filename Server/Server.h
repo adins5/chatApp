@@ -26,6 +26,7 @@ private:
 	std::string firstMessage(SOCKET soc);
 	SOCKET _serverSocket;
 	std::mutex _msgMtx;
+	std::mutex _namesMtx;;
 	std::condition_variable _condMsgQueue;
 	std::queue <std::string> _msgQueue;
 	std::set <std::string> _names;
