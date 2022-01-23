@@ -22,7 +22,6 @@ private:
 	void clientHandler(SOCKET clientSocket);
 
 	void processMsg(int msgLen, int name2Len, std::string name, char* buff, std::string filePath);
-	std::string buildMessage(std::string chat, int nameLen, std::string name);
 	std::string firstMessage(SOCKET soc);
 	SOCKET _serverSocket;
 	std::mutex _msgMtx;
@@ -30,9 +29,7 @@ private:
 	std::condition_variable _condMsgQueue;
 	std::queue <std::string> _msgQueue;
 	std::set <std::string> _names;
-
 };
-
 
 std::string getFileName(std::string n1, std::string n2);
 std::string getChatFromFile(std::string fileName);

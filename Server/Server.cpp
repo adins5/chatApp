@@ -22,8 +22,6 @@ Server::~Server()
 {
 	try
 	{
-		// the only use of the destructor should be for freeing 
-		// resources that was allocated in the constructor
 		closesocket(_serverSocket);
 	}
 	catch (...) {}
@@ -48,8 +46,6 @@ void Server::serve(int port)
 
 	while (true)
 	{
-		// the main thread is only accepting clients 
-		// and add then to the list of handlers
 		std::cout << "Waiting for client connection request" << std::endl;
 		acceptClient();
 	}
@@ -71,7 +67,6 @@ void Server::queueToFileHandler()
 		int seperator = data.find('$');
 
 		fileName = data.substr(0, seperator);
-		std::cout << "seperatot: " << seperator << "file name : " << fileName << std::endl;
 		data = data.substr(seperator + 1, data.length() - seperator - 1);
 
 		file.open(fileName, std::fstream::app);
@@ -169,7 +164,6 @@ void Server::processMsg(int msgLen, int name2Len, std::string name, char* buff, 
 	{
 		msg += char(buff[2 * LENLEN + name2Len + i]);
 	}
-	std::cout << msgLen << " : " << msg << std::endl;
 	// constructing chat msg			
 	msg = filePath + '$' + "&MAGSH_MESSAGE&&Author&" + name + "&DATA&" + msg;
 
@@ -221,9 +215,7 @@ std::string getChatFromFile(std::string fileName)
 	std::ifstream file(fileName); //taking file as inputstream
 	if (!file.is_open())
 	{
-		std::cout << "file wont open - " << fileName;
 		return "";
 	}
-
 	return std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 }
