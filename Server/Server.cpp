@@ -51,26 +51,28 @@ void Server::serve(int port)
 	}
 }
 
+// function that handles the queue
 void Server::queueToFileHandler()
 {
+	// always runs
 	while (true)
 	{
-		std::unique_lock<std::mutex> locker(_msgMtx);
-		_condMsgQueue.wait(locker);
-
 		std::fstream file;
 		std::string fileName, data;
+		// getting msg
+		std::unique_lock<std::mutex> locker(_msgMtx);
+		_condMsgQueue.wait(locker);
 		data = _msgQueue.front();
 		_msgQueue.pop();
 		locker.unlock();
 
+		// getting data and file name
 		int seperator = data.find('$');
-
 		fileName = data.substr(0, seperator);
 		data = data.substr(seperator + 1, data.length() - seperator - 1);
 
+		//opening and writing to file
 		file.open(fileName, std::fstream::app);
-
 		if (!file.is_open())
 		{
 			std::cerr << "Could not open file in writing" << std::endl;
@@ -101,30 +103,25 @@ void Server::acceptClient()
 
 void Server::clientHandler(SOCKET clientSocket)
 {
+	std::unique_lock<std::mutex> locker(_namesMtx);
+	locker.unlock();
+	std::string name = firstMessage(clientSocket);
+
 	try
 	{
-		std::string name = firstMessage(clientSocket);
 		std::string namesString = "", chat = "", name2 = "", filePath = "";
-		int nameLen = name.length(), result = 1;
+		int nameLen = name.length();
 		char buff[BUFFLEN];
-		std::unique_lock<std::mutex> locker(_namesMtx);
-		locker.unlock();
 		while (true)
 		{
 			// getting msg from client
-			result = recv(clientSocket, buff, BUFFLEN, 0);
-			if (result == 0)
-			{
-				break;
-			}
-			//assembeling msg and len
+			recv(clientSocket, buff, BUFFLEN, 0);
 
 			int name2Len = atoi(buff + CODELEN);
 			std::string name2;
 			for (int i = 0; i < name2Len; i++)
-			{
 				name2 += char(buff[LENLEN + i]);
-			}
+			
 			std::string filePath = getFileName(name, name2);
 			int msgLen = atoi(buff + LENLEN + name2Len);
 			// if message has content
@@ -132,7 +129,9 @@ void Server::clientHandler(SOCKET clientSocket)
 				processMsg(msgLen, name2Len, name, buff, filePath);
 
 			Sleep(200);
+			// getting chat
 			std::string chat = name2Len != 0 ? getChatFromFile(filePath) : "";
+			//creating string of names
 			std::string namesString = "";
 			locker.lock();
 			for (std::set <std::string>::iterator it = _names.begin(); it != _names.end(); ++it)
@@ -141,17 +140,19 @@ void Server::clientHandler(SOCKET clientSocket)
 			}
 			locker.unlock();
 			namesString = namesString.substr(0, namesString.length() - 1);
+			
+			//sending reply
 			Helper::send_update_message_to_client(clientSocket, chat, name2, namesString);
 		}
-		
+	}
+	catch (const std::exception& e)
+	{
+		//disconecting
+		closesocket(clientSocket);
 		locker.lock();
 		_names.erase(name);
 		locker.unlock();
 		std::cout << name << " has disconected" << std::endl;
-	}
-	catch (const std::exception& e)
-	{
-		closesocket(clientSocket);
 	}
 }
 
